@@ -244,11 +244,15 @@
       (cond ((looking-at "^[ \t]*\\.") ; line starts with .
              (save-excursion
                (kotlin-mode--prev-line)
-               (cond ((looking-at "^[ \t]*\\.")
+               (cond ((looking-at "^[ \t]*\\.") ;; Align on previously written "." expression
                       (setq cur-indent (current-indentation)))
-
-                     (t
-                      (setq cur-indent (+ (current-indentation) (* 2 kotlin-tab-width)))))
+                     ((re-search-forward "\\." (line-end-position) 1) ;; Is there at least on "." on the line (ex: var.something()). Then align on the ..
+                      (progn
+                        (end-of-line)
+                        (re-search-backward "\\." (line-beginning-position) ) ;; Let's move to the last "." to set the indentation to that point.
+                        (setq cur-indent (- (point) (line-beginning-position)))))
+                     (t ;; Otherwise, simply indent normally for now
+                      (setq cur-indent (+ (current-indentation) kotlin-tab-width))))
                (if (< cur-indent 0)
                    (setq cur-indent 0))))
 
