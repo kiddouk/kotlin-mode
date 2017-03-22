@@ -233,6 +233,75 @@
         (while (and (looking-at "^[ \t]*$") (not (bobp)))
           (forward-line -1)))))
 
+(defun kotlin-mode--inner-parens-scan ()
+  (let ((depth-level 0)
+        (char-found t))
+    (while char-found
+      (progn
+        (setq char-found (re-search-forward "(\\|)" (line-end-position) t 1))
+        (if char-found
+            (if (equal (preceding-char) 40)
+                (setq depth-level (+ depth-level 1))
+              (setq depth-level (- depth-level 1))))
+        ))
+    depth-level)
+  )
+
+(defun kotlin-mode--find-dot-to-align-with ()
+
+  ;; We go back one line
+  (kotlin-mode--prev-line)
+  (beginning-of-line)
+  ;; And try to find what case we are in.
+  ;; if the line contains more ( than ), we return a positive number.
+  ;; 0 for the same number of ( and )
+  ;; negative number if we are more closing than opening
+
+  (let ((level (kotlin-mode--inner-parens-scan)))
+    ;; If we are closing more, we need to iterate backward to find the
+    ;; first '(' opener
+
+    (if (= level 0)
+        (progn
+          (beginning-of-line)
+          (search-forward "(" nil t 1)
+          (search-backward "." (line-beginning-position) t 1)))
+
+    (if (> level 0)
+        (progn
+          (beginning-of-line)
+          (while (> level 0)
+            (progn
+              (search-forward "(" nil t 1)
+              (setq level (- level 1))))
+          (search-forward "." (line-end-position) t 1)
+          (backward-char)))
+
+
+    (if (< level 0)
+        (progn          
+          (while (< level 0)
+            (kotlin-mode--prev-line)
+            (beginning-of-line)
+            (setq level (+ level (kotlin-mode--inner-parens-scan)))
+            (beginning-of-line)
+            (search-forward "(" (line-end-position) t 1)
+            (while (> level 0)
+              (setq level (- level 1))
+              (search-forward "(" (line-end-position) t 1)))
+      
+          (search-backward "." (line-beginning-position) t 1)))
+      
+          
+    ;; We now look backward to find the "last" . until the start of the line.
+
+
+    ;; This is our new indentation point
+    (- (point) (line-beginning-position)))
+  )
+  
+  
+
 (defun kotlin-mode--indent-line ()
   "Indent current line as kotlin code"
   (interactive)
@@ -243,19 +312,8 @@
     (let ((not-indented t) cur-indent)
       (cond ((looking-at "^[ \t]*\\.") ; line starts with .
              (save-excursion
-               (kotlin-mode--prev-line)
-               (cond ((looking-at "^[ \t]*\\.") ;; Align on previously written "." expression
-                      (setq cur-indent (current-indentation)))
-                     ((re-search-forward "\\." (line-end-position) 1) ;; Is there at least on "." on the line (ex: var.something()). Then align on the ..
-                      (progn
-                        (end-of-line)
-                        (re-search-backward "\\." (line-beginning-position) ) ;; Let's move to the last "." to set the indentation to that point.
-                        (setq cur-indent (- (point) (line-beginning-position)))))
-                     (t ;; Otherwise, simply indent normally for now
-                      (setq cur-indent (+ (current-indentation) kotlin-tab-width))))
-               (if (< cur-indent 0)
-                   (setq cur-indent 0))))
-
+               (setq cur-indent (kotlin-mode--find-dot-to-align-with)))
+               )
             ((looking-at "^[ \t]*}") ; line starts with }
              (save-excursion
                (kotlin-mode--prev-line)
