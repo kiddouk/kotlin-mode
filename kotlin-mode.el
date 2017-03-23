@@ -233,7 +233,7 @@
         (while (and (looking-at "^[ \t]*$") (not (bobp)))
           (forward-line -1)))))
 
-(defun kotlin-mode--inner-parens-scan ()
+(defun kotlin-mode--inner-parens-level-scan ()
   (let ((depth-level 0)
         (char-found t))
     (while char-found
@@ -257,7 +257,7 @@
   ;; 0 for the same number of ( and )
   ;; negative number if we are more closing than opening
 
-  (let ((level (kotlin-mode--inner-parens-scan)))
+  (let ((level (kotlin-mode--inner-parens-level-scan)))
     ;; If we are closing more, we need to iterate backward to find the
     ;; first '(' opener
 
@@ -283,7 +283,7 @@
           (while (< level 0)
             (kotlin-mode--prev-line)
             (beginning-of-line)
-            (setq level (+ level (kotlin-mode--inner-parens-scan)))
+            (setq level (+ level (kotlin-mode--inner-parens-level-scan)))
             (beginning-of-line)
             (search-forward "(" (line-end-position) t 1)
             (while (> level 0)
