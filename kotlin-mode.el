@@ -324,7 +324,7 @@
                      (t
                       (setq cur-indent (- (current-indentation) kotlin-tab-width)))))
                (if (< cur-indent 0)
-                   (setq cur-indent 0))))
+                   (setq cur-indent 0)))
 
             ((looking-at "^[ \t]*}")
              (save-excursion
