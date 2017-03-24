@@ -43,7 +43,39 @@ fun sum(a: Int, b: Int): Int {
     return a + b
 }"))
 
-;; (ert-deftest kotlin-mode--chained-methods ()
+(ert-deftest kotlin-mode--chained-methods ()
+  (test-indent
+   "
+fun sum(a: Int, b: Int): Int {
+    var me = this.is()
+                 .a()
+                 .method()
+                 .chaining();
+}"))
+
+(ert-deftest kotlin-mode--chained-methods-with-inner-chain ()
+  (test-indent
+   "
+fun sum(a: Int, b: Int): Int {
+    var me = this.is(a.method()
+                      .chaining())
+                 .with()
+                 .innerchaining();
+}"))
+
+(ert-deftest kotlin-mode--chained-methods-with-a-flat-inner-chain ()
+  (test-indent
+   "
+fun sum(a: Int, b: Int): Int {
+    var me = this.is(a.method())
+                 .chaining()
+                 .with()
+                 .a_flat()
+                 .innerchaining();
+}"))
+
+
+;; (Ert-deftest kotlin-mode--chained-methods ()
 ;;   (with-temp-buffer
 ;;     (let ((text "names.filter { it.empty }
 ;; .sortedBy { it }
