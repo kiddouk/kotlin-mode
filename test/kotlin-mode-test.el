@@ -1,51 +1,47 @@
-(load-file "kotlin-mode.el")
+;;; kotlin-mode-test.el --- ERT Tests for kotlin-mode.el
 
-;(require 'kotlin-mode)
+(load-file "kotlin-mode.el")
+(setq-default indent-tabs-mode nil)
+(setq kotlin-tab-width 4)
+              
+(require 'ert)
+
+(defun kotlin-compare-code-after-manip (original point-pos manip-func expected got)
+  (equal expected got))
+
+(defun kotlin-test-manip-code (original point-pos manip-func expected)
+  (with-temp-buffer
+    (kotlin-mode)
+    (insert original)
+    (goto-char point-pos)
+    (funcall manip-func)
+    (should (kotlin-compare-code-after-manip
+             original point-pos manip-func expected (buffer-string)))))
+
+(defun test-indent (indented &optional deindented)
+  (let ((deindented (or deindented (replace-regexp-in-string "^[[:blank:]]*" "    " indented))))
+    (kotlin-test-manip-code
+     deindented
+     1
+     (lambda ()
+       (indent-region 1 (+ 1 (buffer-size))))
+     indented)))
 
 (ert-deftest kotlin-mode--top-level-indent-test ()
-  (with-temp-buffer
-    (let ((text "package com.gregghz.emacs
+  (test-indent
+    "package com.gregghz.emacs
 
 import java.util.*
 import foo.Bar
 import bar.Bar as bBar
 "))
-      (insert text)
-      (beginning-of-buffer)
-      (kotlin-mode--indent-line)
-
-      (should (equal text (buffer-string)))
-
-      (next-line)
-      (kotlin-mode--indent-line)
-      (should (equal text (buffer-string)))
-
-      (next-line)
-      (kotlin-mode--indent-line)
-      (should (equal text (buffer-string)))
-
-      (next-line)
-      (kotlin-mode--indent-line)
-      (should (equal text (buffer-string)))
-
-      (next-line)
-      (kotlin-mode--indent-line)
-      (should (equal text (buffer-string))))))
 
 (ert-deftest kotlin-mode--single-level-indent-test ()
-  (with-temp-buffer
-    (let ((text "fun sum(a: Int, b: Int): Int {
-return a + b
+  (test-indent
+    "
+fun sum(a: Int, b: Int): Int {
+    return a + b
 }"))
-
-      (insert text)
-      (beginning-of-buffer)
-      (next-line)
-
-      (kotlin-mode--indent-line)
-      (should (equal (buffer-string) "fun sum(a: Int, b: Int): Int {
-	return a + b
-}")))))
 
 ;; (ert-deftest kotlin-mode--chained-methods ()
 ;;   (with-temp-buffer
