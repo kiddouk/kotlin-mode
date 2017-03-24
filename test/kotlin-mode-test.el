@@ -74,6 +74,15 @@ fun sum(a: Int, b: Int): Int {
                  .innerchaining();
 }"))
 
+(ert-deftest kotlin-mode--chained-methods-without-parens ()
+  (test-indent
+   "
+fun sum(a: Int, b: Int): Int {
+    var me = this.is { method }
+                 .chaining { it };
+    
+}"))
+
 
 ;; (Ert-deftest kotlin-mode--chained-methods ()
 ;;   (with-temp-buffer

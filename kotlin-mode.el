@@ -264,7 +264,7 @@
     (if (= level 0)
         (progn
           (beginning-of-line)
-          (search-forward "(" nil t 1)
+          (re-search-forward "(\\|{" nil t 1)
           (search-backward "." (line-beginning-position) t 1)))
 
     (if (> level 0)
@@ -272,7 +272,7 @@
           (beginning-of-line)
           (while (> level 0)
             (progn
-              (search-forward "(" nil t 1)
+              (re-search-forward "(\\|{" nil t 1)
               (setq level (- level 1))))
           (search-forward "." (line-end-position) t 1)
           (backward-char)))
@@ -285,10 +285,10 @@
             (beginning-of-line)
             (setq level (+ level (kotlin-mode--inner-parens-level-scan)))
             (beginning-of-line)
-            (search-forward "(" (line-end-position) t 1)
+            (re-search-forward "(\\|{" (line-end-position) t 1)
             (while (> level 0)
               (setq level (- level 1))
-              (search-forward "(" (line-end-position) t 1)))
+              (re-search-forward "(\\|{" (line-end-position) t 1)))
       
           (search-backward "." (line-beginning-position) t 1)))
       
