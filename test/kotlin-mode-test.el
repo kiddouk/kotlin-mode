@@ -95,28 +95,11 @@ fun sum(a: Int, b: Int): Int {
 }"))
 
 
-;; (Ert-deftest kotlin-mode--chained-methods ()
-;;   (with-temp-buffer
-;;     (let ((text "names.filter { it.empty }
-;; .sortedBy { it }
-;; .map { it.toUpperCase() }
-;; .forEach { print(it) }"))
-
-;;       (insert text)
-;;       (beginning-of-buffer)
-
-;;       (kotlin-mode--indent-line)
-
-;;       (next-line)
-;;       (kotlin-mode--indent-line)
-
-;;       (next-line)
-;;       (kotlin-mode--indent-line)
-
-;;       (next-line)
-;;       (kotlin-mode--indent-line)
-
-;;       (should (equal (buffer-string) "names.filter { it.empty }
-;; 	.sortedBy { it }
-;; 	.map { it.toUpperCase() }
-;; 	.forEach { print(it) }")))))
+(ert-deftest kotlin-mode--chained-methods-with-parens-and-curly ()
+  (test-indent
+   "
+fun sum(a: Int, b: Int): Int {
+    var me = this.is({ method.test { it }
+                             .indent() })
+                 .chaining({ it });
+}"))
