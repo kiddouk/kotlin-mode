@@ -238,9 +238,12 @@
         (char-found t))
     (while char-found
       (progn
-        (setq char-found (re-search-forward "(\\|)" (line-end-position) t 1))
+        (setq char-found (re-search-forward "{\\|(\\|)\\|}" (line-end-position) t 1))
         (if char-found
-            (if (equal (preceding-char) 40)
+            (if (or
+                 (eq (preceding-char) ?\( )
+                 (eq (preceding-char) ?\{ )
+                 )
                 (setq depth-level (+ depth-level 1))
               (setq depth-level (- depth-level 1))))
         ))
