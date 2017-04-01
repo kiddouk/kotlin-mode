@@ -345,6 +345,16 @@
              (if (< cur-indent 0)
                  (setq cur-indent 0)))
 
+            ((looking-at "^[ \t]*[gs]et[ \t]*(") ; line starts with get( or set(
+             (save-excursion
+               (kotlin-mode--prev-line)
+               (cond ((looking-at "^[ \t]*va[rl]\\b")
+                      (setq cur-indent (+ (current-indentation) kotlin-tab-width)))
+                     ((looking-at "^[ \t]*[gs]et[ \t]*(")
+                      (setq cur-indent (current-indentation))))
+               (if (< cur-indent 0)
+                   (setq cur-indent 0))))
+
             (t
              (save-excursion
                (while not-indented
