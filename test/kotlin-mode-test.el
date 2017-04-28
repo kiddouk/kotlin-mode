@@ -195,3 +195,12 @@ class T {
         }
     }
 }"))
+
+(ert-deftest kotlin-mode--straight-lambda ()
+  (test-indent
+   "
+fun sum(a: Int, b: Int): Int {
+    var me = obj.apply { x ->
+        method.test { it }
+    }
+}"))
