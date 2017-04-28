@@ -225,169 +225,160 @@
                    t)
           (kotlin-mode--match-interpolation limit))))))
 
-(defun kotlin-mode--prev-line ()
-  "Moves up to the nearest non-empty line"
+(defun kotlin-paren-level () (nth 0 (syntax-ppss)))
+(defun kotlin-rewind-to-start-of-inner-expr () (goto-char (nth 1 (syntax-ppss))))
+(defun kotlin-in-str-or-cmnt () (nth 8 (syntax-ppss)))
+(defun kotlin-rewind-past-str-cmnt () (goto-char (nth 8 (syntax-ppss))))
+(defun kotlin-rewind-to-previous-paren () (while (not (looking-at "(")) (backward-char 1)))
+(defun kotlin-prev-line ()
+  "Moves up to the nearest non-empty line. This doesn't support comments between
+between function chaining or in function calls or declarations."
   (if (not (bobp))
       (progn
         (forward-line -1)
         (while (and (looking-at "^[ \t]*$") (not (bobp)))
           (forward-line -1)))))
 
-(defun kotlin-mode--inner-parens-level-scan ()
-  (let ((depth-level 0)
-        (char-found t))
-    (while char-found
+(defun rewind-to-beginning-of-expr ()
+  "this defun is trying to find the start of the expression backward. At the
+  end, the point should be on the first character of the expression. 
+
+  This function is mainly used in function chaining to point at the right level
+  of indentation."
+  (let ((current-level (kotlin-paren-level))
+        (expected-indentation (* kotlin-tab-width (kotlin-paren-level))))
+    (while (or (and (>= (kotlin-paren-level) current-level)
+                    (not (kotlin-is-decl))
+                    (not (= expected-indentation (current-indentation))))
+               (kotlin-is-method-chaining))
+      
       (progn
-        (setq char-found (re-search-forward "{\\|(\\|)\\|}" (line-end-position) t 1))
-        (if char-found
-            (if (or
-                 (eq (preceding-char) ?\( )
-                 (eq (preceding-char) ?\{ )
-                 )
-                (setq depth-level (+ depth-level 1))
-              (setq depth-level (- depth-level 1))))
-        ))
-    depth-level)
+        (kotlin-prev-line)
+        (back-to-indentation))
+      )
+
+    ;; the previous while loop may put us one line above the desired start of
+    ;; expression if we didn't match a declaration. We fix that here
+    ;; FIXME: kotlin-prev-line can jump empty lines and we dont take that into
+    ;; account. It is not that bad since we will end up in the right inner level
+    ;; anyway but we should investigate it.
+    (if (> current-level (kotlin-paren-level))
+        (if (kotlin-is-fun-or-class)
+            (kotlin-get-down-in-fun-or-class)
+          (while (not (= current-level (kotlin-paren-level)))
+            (down-list)))))
   )
 
-(defun kotlin-mode--find-dot-to-align-with ()
+(defvar kotlin-decl-re (regexp-opt '("var" "val" "companion" "class" "fun"
+                                     "data")))
 
-  ;; We go back one line
-  (kotlin-mode--prev-line)
-  (beginning-of-line)
-  ;; And try to find what case we are in.
-  ;; if the line contains more ( than ), we return a positive number.
-  ;; 0 for the same number of ( and )
-  ;; negative number if we are more closing than opening
+(defvar kotlin-fun-class-decl-re (regexp-opt '("fun" "class")))
 
-  (let ((level (kotlin-mode--inner-parens-level-scan)))
-    ;; If we are closing more, we need to iterate backward to find the
-    ;; first '(' opener
+(defun kotlin-get-down-in-fun-or-class ()
+  (end-of-line nil)
+  (search-backward "{" nil 1 1)
+  (message (string (following-char)))
+  (down-list)
+  (forward-line)
+  (message (string (following-char))))
 
-    (if (= level 0)
-        (progn
-          (beginning-of-line)
-          (re-search-forward "(\\|{" nil t 1)
-          (search-backward "." (line-beginning-position) t 1)))
+(defun kotlin-is-decl ()
+  (save-excursion
+    (back-to-indentation)
+    (looking-at kotlin-decl-re)
+    ))
 
-    (if (> level 0)
-        (progn
-          (beginning-of-line)
-          (while (> level 0)
-            (progn
-              (re-search-forward "(\\|{" nil t 1)
-              (setq level (- level 1))))
-          (search-forward "." (line-end-position) t 1)
-          (backward-char)))
-
-
-    (if (< level 0)
-        (progn          
-          (while (< level 0)
-            (kotlin-mode--prev-line)
-            (beginning-of-line)
-            (setq level (+ level (kotlin-mode--inner-parens-level-scan)))
-            (beginning-of-line)
-            (re-search-forward "(\\|{" (line-end-position) t 1)
-            (while (> level 0)
-              (setq level (- level 1))
-              (re-search-forward "(\\|{" (line-end-position) t 1)))
-      
-          (search-backward "." (line-beginning-position) t 1)))
-      
-          
-    ;; We now look backward to find the "last" . until the start of the line.
-
-
-    ;; This is our new indentation point
-    (- (point) (line-beginning-position)))
+(defun kotlin-is-fun-or-class ()
+  (save-excursion
+    (back-to-indentation)
+    (looking-at kotlin-fun-class-decl-re)
+    ))
+        
+(defun kotlin-is-method-chaining ()
+  "Return true if the current line is a method chaining"
+  (save-excursion
+    (back-to-indentation)
+    (looking-at "\\."))
   )
-  
-  
+
+(defun kotlin-find-last-chain-member-on-line ()
+  "looks for the last call on '.' for this line. The lookup is done
+  backward in order to prevent the return of a false positive. 
+  ex: test.foo(bar.prop)
+          ^       ^
+          |       not this
+          + this
+
+  This is mostly called for method chaining alignement in order to
+point at the last method chainer. 
+"
+  (save-excursion
+    (let ((start-position (point))
+          (current-level (kotlin-paren-level)))
+      (message (string (following-char)))
+      (move-end-of-line nil)
+
+      ;; iterate until we find a . that is not in an inner expression
+      (while (and (> (point) start-position)
+                  (or (not (search-backward "." start-position 1 1))
+                      (> (kotlin-paren-level) current-level)))
+        t)
+
+      ;; Make sure that we found that . otherwise inform the caller
+      (if (not (looking-at "\\."))
+          nil
+        (point)))
+      ))
 
 (defun kotlin-mode--indent-line ()
   "Indent current line as kotlin code"
   (interactive)
-  (beginning-of-line)
-  (if (bobp) ; 1.)
-      (progn
-        (kotlin-mode--beginning-of-buffer-indent))
-    (let ((not-indented t) cur-indent)
-      (cond ((looking-at "^[ \t]*\\.") ; line starts with .
-             (save-excursion
-               (setq cur-indent (kotlin-mode--find-dot-to-align-with)))
-               )
-            ((looking-at "^[ \t]*}") ; line starts with }
-             (save-excursion
-               (kotlin-mode--prev-line)
-               (while (and (or (looking-at "^[ \t]*$") (looking-at "^[ \t]*\\.")) (not (bobp)))
-                 (kotlin-mode--prev-line))
-               (cond ((or (looking-at ".*{[ \t]*$") (looking-at ".*{.*->[ \t]*$"))
-                      (setq cur-indent (current-indentation)))
-                     (t
-                      (setq cur-indent (- (current-indentation) kotlin-tab-width)))))
-               (if (< cur-indent 0)
-                   (setq cur-indent 0)))
+  (save-excursion
+      (back-to-indentation)
+      (cond ((looking-at "}\\|)") ; line starts with .
+             (setq cur-indent (* kotlin-tab-width (- (kotlin-paren-level) 1))))
 
-            ((looking-at "^[ \t]*}")
+            ((looking-at "\\.") ;; We are in a function chaining case so we are
+                                ;; trying to go to the beginning of the
+             ;; statement
+             (let ((line-to-indent-level (kotlin-paren-level)))
              (save-excursion
-               (forward-line -1)
-               (while (and (looking-at "^[ \t]*\\.") (not (bobp)))
-                 (forward-line -1))
-               (setq cur-indent (- (current-indentation) kotlin-tab-width)))
-             (if (< cur-indent 0)
-                 (setq cur-indent 0)))
+               (rewind-to-beginning-of-expr)
+               (let ((chainer-position (kotlin-find-last-chain-member-on-line)))
+                 (if chainer-position
+                     (progn (back-to-indentation)
+                            (setq cur-indent (- chainer-position (line-beginning-position)))
+                            )
+                   (setq cur-indent (* kotlin-tab-width (+ 1 line-to-indent-level))))))
+             ))
 
-            ((looking-at "^[ \t]*)") ; line starts with )
-             (save-excursion
-               (kotlin-mode--prev-line)
-               (setq cur-indent (- (current-indentation) kotlin-tab-width)))
-             (if (< cur-indent 0)
-                 (setq cur-indent 0)))
-
-            ((looking-at "^[ \t]*[gs]et[ \t]*(") ; line starts with get( or set(
-             (save-excursion
-               (kotlin-mode--prev-line)
-               (cond ((looking-at "^[ \t]*va[rl]\\b")
-                      (setq cur-indent (+ (current-indentation) kotlin-tab-width)))
-                     ((looking-at "^[ \t]*[gs]et[ \t]*(")
-                      (setq cur-indent (current-indentation))))
-               (if (< cur-indent 0)
-                   (setq cur-indent 0))))
-
+            ;; for all the cases that requires that we analyse the previous line
+            ;; instead of the current line. This should help us to get some more
+            ;; context and help to make a decision.
             (t
-             (save-excursion
-               (while not-indented
-                 (kotlin-mode--prev-line)
-                 (cond ((looking-at ".*{[ \t]*$") ; line ends with {
-                        (setq cur-indent (+ (current-indentation) kotlin-tab-width))
-                        (setq not-indented nil))
+             (let ((line-to-indent-level (kotlin-paren-level)))
+               (save-excursion
+                 (kotlin-prev-line)
+                 (back-to-indentation)
+                 (cond (;; Ending with a coma, this must be line warp for a defun of
+                        ;; or a funcall so we apply twice the indent as stated in
+                        ;; java coding style from Oracle
+                        (looking-at ".*,[ \t]*$")
+                        (setq cur-indent (+ (current-indentation)
+                                             (* 2 kotlin-tab-width))))
+                       
 
-                       ((looking-at "^[ \t]*}") ; line starts with }
-                        (setq cur-indent (current-indentation))
-                        (setq not-indented nil))
 
-                       ((looking-at ".*{.*->[ \t]*$") ; line ends with ->
-                        (setq cur-indent (+ (current-indentation) kotlin-tab-width))
-                        (setq not-indented nil))
-
-                       ((looking-at ".*([ \t]*$") ; line ends with (
-                        (setq cur-indent (+ (current-indentation) (* 2 kotlin-tab-width)))
-                        (setq not-indented nil))
-
-                       ((looking-at "^[ \t]*).*$") ; line starts with )
-                        (setq cur-indent (current-indentation))
-                        (setq not-indented nil))
-
-                       ((bobp) ; 5.)
-                        (setq not-indented nil)))))))
+                       ;; Any other case is getting a normal indentation
+                       ;; according to how deep we are nested
+                       (t
+                        (setq cur-indent (* kotlin-tab-width
+                                            line-to-indent-level)))
+                       )))))
+      
       (if cur-indent
           (indent-line-to cur-indent)
-        (indent-line-to 0)))))
-
-
-(defun kotlin-mode--beginning-of-buffer-indent ()
-  (indent-line-to 0))
+        (indent-line-to 0))))
 
 ;;;###autoload
 (define-derived-mode kotlin-mode prog-mode "Kotlin"
