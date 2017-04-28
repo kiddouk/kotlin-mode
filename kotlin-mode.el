@@ -112,8 +112,8 @@
 (defvar kotlin-mode--font-lock-keywords
   `(;; Keywords
     (,(rx-to-string
-     `(and bow (group (or ,@kotlin-mode--keywords)) eow)
-     t)
+       `(and bow (group (or ,@kotlin-mode--keywords)) eow)
+       t)
      1 font-lock-keyword-face)
 
     ;; Package names
@@ -125,15 +125,15 @@
 
     ;; Types
     (,(rx-to-string
-      `(and bow upper (group (* (or word "<" ">" "." "?" "!"))))
-      t)
+       `(and bow upper (group (* (or word "<" ">" "." "?" "!"))))
+       t)
      0 font-lock-type-face)
 
     ;; Classes/Enums
     (,(rx-to-string
-      `(and bow (or ,@kotlin-mode--type-decl-keywords) eow (+ space)
-            (group (+ word)) eow)
-      t)
+       `(and bow (or ,@kotlin-mode--type-decl-keywords) eow (+ space)
+             (group (+ word)) eow)
+       t)
      1 font-lock-type-face)
 
     ;; Constants
