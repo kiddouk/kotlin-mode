@@ -247,15 +247,15 @@ between function chaining or in function calls or declarations."
   of indentation."
   (let ((current-level (kotlin-paren-level))
         (expected-indentation (* kotlin-tab-width (kotlin-paren-level))))
-    (while (or (and (>= (kotlin-paren-level) current-level)
-                    (not (kotlin-is-decl))
+    (while (or (and (not (kotlin-is-decl))
                     (not (= expected-indentation (current-indentation))))
-               (kotlin-is-method-chaining))
+               (kotlin-is-method-chaining)
+               (> (kotlin-paren-level) current-level)
+               )
       
       (progn
         (kotlin-prev-line)
-        (back-to-indentation))
-      )
+        (back-to-indentation)))
 
     ;; the previous while loop may put us one line above the desired start of
     ;; expression if we didn't match a declaration. We fix that here
@@ -277,10 +277,9 @@ between function chaining or in function calls or declarations."
 (defun kotlin-get-down-in-fun-or-class ()
   (end-of-line nil)
   (search-backward "{" nil 1 1)
-  (message (string (following-char)))
   (down-list)
   (forward-line)
-  (message (string (following-char))))
+)  
 
 (defun kotlin-is-decl ()
   (save-excursion
@@ -315,7 +314,6 @@ point at the last method chainer.
   (save-excursion
     (let ((start-position (point))
           (current-level (kotlin-paren-level)))
-      (message (string (following-char)))
       (move-end-of-line nil)
 
       ;; iterate until we find a . that is not in an inner expression

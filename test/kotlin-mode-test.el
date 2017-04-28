@@ -191,7 +191,7 @@ class T {
                 method.test { it }
                       .indent()
             }
-                       .chaining({ it });
+                        .chaining({ it })
         }
     }
 }"))
