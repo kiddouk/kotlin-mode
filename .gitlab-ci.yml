@@ -6,6 +6,6 @@ stages:
 run_test:
   stage: test
   script:
-    - run-tests.sh
+    - cd /builds/errorlab/kotlin-mode/ && ./run-tests.sh
 
 
