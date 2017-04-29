@@ -204,3 +204,14 @@ fun sum(a: Int, b: Int): Int {
         method.test { it }
     }
 }"))
+
+
+(ert-deftest kotlin-mode--lambda-from-new-line ()
+  (test-indent
+   "
+fun sum(a: Int, b: Int): Int {
+    var me = obj.apply { 
+        x ->
+            method.test { x }
+    }
+}"))
