@@ -85,6 +85,19 @@ class T {
         }}
 }"))
 
+
+(ert-deftest kotlin-mode--3-arguments-indent-test ()
+  (test-indent
+    "
+class T {
+    fun sum(a: Int, b: Int): Int {
+        object {
+            test(thisIsALongArgument,
+                    thisIsAnotherOne,
+                    andALastOne)
+        }}
+}"))
+
 (ert-deftest kotlin-mode--nested-arguments-indent-test ()
   (test-indent
     "
