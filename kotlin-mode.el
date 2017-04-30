@@ -365,8 +365,15 @@ point at the last method chainer.
                         ;; or a funcall so we apply twice the indent as stated in
                         ;; java coding style from Oracle
                         (looking-at ".*,[ \t]*$")
-                        (setq cur-indent (* kotlin-tab-width
-                                            (+ line-to-indent-level 2))))
+                        (setq cur-indent (+ (* kotlin-tab-width
+                                               (+ line-to-indent-level
+                                                  1))
+                                            (if (< (kotlin-paren-level)
+                                                   line-to-indent-level)
+                                                (- (current-indentation)
+                                                   (* (kotlin-paren-level)
+                                                      kotlin-tab-width))
+                                              0))))
 
                        ;; Any other case is getting a normal indentation
                        ;; according to how deep we are nested
