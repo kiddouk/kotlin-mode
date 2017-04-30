@@ -366,7 +366,7 @@ point at the last method chainer.
                         ;; java coding style from Oracle
                         (looking-at ".*,[ \t]*$")
                         (setq cur-indent (* kotlin-tab-width
-                                            (+ line-to-indent-level 1))))
+                                            (+ line-to-indent-level 2))))
 
                        ;; Any other case is getting a normal indentation
                        ;; according to how deep we are nested
