@@ -363,8 +363,12 @@ point at the last method chainer.
                  (back-to-indentation)
                  (cond (;; Ending with a coma, this must be line warp for a defun of
                         ;; or a funcall so we apply twice the indent as stated in
-                        ;; java coding style from Oracle
+                        ;; java coding style from Oracle. 
                         (looking-at ".*,[ \t]*$")
+                        ;; we also need to look if the line above is on the same
+                        ;; parens level in order to detect an inner function
+                        ;; call. In that case, we reuse the extra indentation to
+                        ;; the new indenting. 
                         (setq cur-indent (+ (* kotlin-tab-width
                                                (+ line-to-indent-level
                                                   1))
