@@ -218,3 +218,21 @@ fun sum(a: Int, b: Int): Int {
     }
 }"))
 
+(ert-deftest kotlin-mode--getter()
+  (test-indent
+   "
+class T {
+    var x: Int
+        get() = 3
+}"))
+
+(ert-deftest kotlin-mode--getter-setter()
+  (test-indent
+   "
+class T {
+    var x: Int
+        get() = 3
+        set(v) {
+            field = v
+        }
+}"))

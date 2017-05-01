@@ -63,7 +63,9 @@
 
 
 ;;; Font Lock
-
+(defconst kotlin-statement-getter-setter-keywords
+  '("set" "get"))
+  
 (defconst kotlin-mode--misc-keywords
   '("package" "import"))
 
@@ -253,8 +255,8 @@ between function chaining or in function calls or declarations."
     (while (or (and (not (kotlin-is-decl))
                     (not (= expected-indentation (current-indentation))))
                (kotlin-is-method-chaining)
-               (> (kotlin-paren-level) current-level)
-               )
+               (kotlin-is-getter-setter)
+               (> (kotlin-paren-level) current-level))
       
       (progn
         (kotlin-prev-line)
@@ -277,12 +279,20 @@ between function chaining or in function calls or declarations."
 
 (defvar kotlin-fun-class-decl-re (regexp-opt '("fun" "class")))
 
+(defvar kotlin-getters-re (regexp-opt '("set" "get")))
+
 (defun kotlin-get-down-in-fun-or-class ()
   (end-of-line nil)
   (search-backward "{" nil 1 1)
   (down-list)
   (forward-line)
 )  
+
+(defun kotlin-is-getter-setter ()
+  (save-excursion
+    (back-to-indentation)
+    (looking-at kotlin-getters-re)
+    ))
 
 (defun kotlin-is-decl ()
   (save-excursion
@@ -336,7 +346,8 @@ point at the last method chainer.
   (interactive)
   (save-excursion
       (back-to-indentation)
-      (cond ((looking-at "}\\|)") ; line starts with .
+      (cond ((looking-at "}\\|)") ;; line starts by a closing char, time to
+                                  ;; indent back
              (setq cur-indent (* kotlin-tab-width (- (kotlin-paren-level) 1))))
 
             ((looking-at "\\.") ;; We are in a function chaining case so we are
@@ -352,6 +363,16 @@ point at the last method chainer.
                             )
                    (setq cur-indent (* kotlin-tab-width (+ 1 line-to-indent-level))))))
              ))
+
+            ((looking-at "[gs]et(")
+             (save-excursion
+               (rewind-to-beginning-of-expr)
+               (if (looking-at "[ \t]*va[lr]")
+                   (setq cur-indent (* kotlin-tab-width
+                                       (+
+                                        (kotlin-paren-level) 1)))
+                 (setq cur-indent (* kotlin-tab-width (kotlin-paren-level))))))
+                         
 
             ;; for all the cases that requires that we analyse the previous line
             ;; instead of the current line. This should help us to get some more
