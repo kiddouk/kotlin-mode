@@ -1,18 +1,22 @@
 # Emacs Kotlin Mode
 
-[![MELPA](https://melpa.org/packages/kotlin-mode-badge.svg)](https://melpa.org/#/kotlin-mode)
+This mode is a fork of the original Kotlin-Mode that is published in [in this repo](https://github.com/Emacs-Kotlin-Mode-Maintainers/kotlin-mode).
 
-In a sense the title says it all, this is an [Emacs](https://www.gnu.org/software/emacs/) major mode for
-editing [Kotlin](http://kotlinlang.org/) source code – and in the future [Gradle](http://gradle.org/) build
-files.
+As the time of writing, the official repo has stalled for the development and I had an urge for trying my developper skills at Lisp. This is work in progress.
 
-If you are using Emacs 24 or later, use the package management system to install this mode from
-[MELPA](http://melpa.org/) (*).
+Here are a few things that this version of kotlin-mode is trying to address compared to the original mode:
+* correct method chaining that aligns dots correctly
+* long function calls that has parameter names on a new line
+* getter and setter indentation
+* closing parenthesis back indentation
+* more comprehensive integration tests
 
-If you are using an earlier version of Emacs, you are probably best advised to upgrade Emacs to a version
-with package management so you can use package management to install the mode from MELPA.
+All this comes with one restriction though:
 
+This major mode is more strict has it always try to assign an indentation according to what has been parsed. This means that, for now, you cannot change the previous line's indentation and hope to get the rest of the file align on that.
 
+Credits:
+* The original developpers of kotlin-mode
+* Sebastien Requiem
+* You maybe? Send your patches so we can enjoy kotlin on emacs.
 
-(*) As at 2016-06-20 this mode is only in MELPA and not in MELPA stable, a release will be made when a
-version is ready to be declared.
