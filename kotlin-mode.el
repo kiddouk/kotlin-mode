@@ -34,8 +34,7 @@
 (defcustom kotlin-tab-width default-tab-width
   "The tab width to use for indentation."
   :type 'integer
-  :group 'kotlin-mode
-  :safe 'integerp)
+  :group 'kotlin-mode)
 
 (defvar kotlin-mode-map
   (let ((map (make-keymap)))
