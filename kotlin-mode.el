@@ -241,7 +241,7 @@ between function chaining or in function calls or declarations."
   (if (not (bobp))
       (progn
         (forward-line -1)
-        (while (and (looking-at "^[ \t]*$") (not (bobp)))
+        (while (and (or (looking-at "^[ \t]*$") (looking-at "^[ \t]//.*$")) (not (bobp)))
           (forward-line -1)))))
 
 (defun rewind-to-beginning-of-expr ()
@@ -251,7 +251,9 @@ between function chaining or in function calls or declarations."
   This function is mainly used in function chaining to point at the right level
   of indentation."
   (let ((current-level (kotlin-paren-level))
-        (expected-indentation (* kotlin-tab-width (kotlin-paren-level))))
+        (expected-indentation (* kotlin-tab-width (kotlin-paren-level)))
+        (getter-seen nil)
+        )
     (while (or (and (not (kotlin-is-decl))
                     (not (= expected-indentation (current-indentation))))
                (kotlin-is-method-chaining)
@@ -259,6 +261,9 @@ between function chaining or in function calls or declarations."
                (> (kotlin-paren-level) current-level))
       
       (progn
+        (if (kotlin-is-getter-setter)
+            (setq getter-seen t)
+          )
         (kotlin-prev-line)
         (back-to-indentation)))
 
@@ -271,7 +276,11 @@ between function chaining or in function calls or declarations."
         (if (kotlin-is-fun-or-class)
             (kotlin-get-down-in-fun-or-class)
           (while (not (= current-level (kotlin-paren-level)))
-            (down-list)))))
+            (down-list))))
+
+    getter-seen
+
+    )
   )
 
 (defvar kotlin-decl-re (regexp-opt '("var" "val" "companion" "class" "fun"
@@ -291,8 +300,16 @@ between function chaining or in function calls or declarations."
 (defun kotlin-is-getter-setter ()
   (save-excursion
     (back-to-indentation)
-    (looking-at kotlin-getters-re)
-    ))
+    (looking-at kotlin-getters-re))
+  )
+
+(defun kotlin-is-inner-getter-setter ()
+  (save-excursion
+    (back-to-indentation)
+    (rewind-to-beginning-of-expr)
+    )
+  )
+
 
 (defun kotlin-is-decl ()
   (save-excursion
@@ -341,6 +358,7 @@ point at the last method chainer.
         (point)))
     ))
 
+
 (defun kotlin-mode--indent-line ()
   "Indent current line as kotlin code"
   (interactive)
@@ -348,8 +366,17 @@ point at the last method chainer.
   (save-excursion
     (cond ((looking-at "}\\|)") ;; line starts by a closing char, time to
            ;; indent back
-           (setq cur-indent (* kotlin-tab-width (- (kotlin-paren-level) 1))))
-
+           (setq cur-indent
+                 (* kotlin-tab-width
+                    (- (kotlin-paren-level)
+                       (* 1 (if (kotlin-is-inner-getter-setter)
+                                0
+                              1)
+                          )
+                       )
+                    )
+                 )
+           )
           ((looking-at "\\.") ;; We are in a function chaining case so we are
            ;; trying to go to the beginning of the
            ;; statement
@@ -389,7 +416,8 @@ point at the last method chainer.
                       ;; we also need to look if the line above is on the same
                       ;; parens level in order to detect an inner function
                       ;; call. In that case, we reuse the extra indentation to
-                      ;; the new indenting. 
+                      ;; the new indenting.
+
                       (setq cur-indent (+ (* kotlin-tab-width
                                              (+ line-to-indent-level
                                                 1))
@@ -400,18 +428,28 @@ point at the last method chainer.
                                                     kotlin-tab-width))
                                             0))))
 
-                     ;; Any other case is getting a normal indentation
+                     ;; NOTE: I think that here, we should look if we have a set/get and act on it. The trick is to figure out if the get/set is a getter/setter on a var/val. Not that easy.
+                     ((looking-at "[ \t]*[gs]et(")
+                      (save-excursion
+                        (rewind-to-beginning-of-expr)
+                        (if (looking-at "[ \t]*va[lr]")
+                              (setq cur-indent (* kotlin-tab-width
+                                                  (+ 1 line-to-indent-level)))
+                              ))
+                        
+                      )
+
+                     
+                     ;; other message case is getting a normal indentation
                      ;; according to how deep we are nested
-                     ((kotlin-is-getter-setter) (+ line-to-indent-level
-                                                   1))
                      (t
                       (setq cur-indent (* kotlin-tab-width
                                           line-to-indent-level)))
                      ))))))
-    
-    (if cur-indent
-        (indent-line-to cur-indent)
-      (indent-line-to 0)))
+  
+  (if cur-indent
+      (indent-line-to cur-indent)
+    (indent-line-to 0)))
 
 ;;;###autoload
 (define-derived-mode kotlin-mode prog-mode "Kotlin"
