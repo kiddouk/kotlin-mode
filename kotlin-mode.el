@@ -65,7 +65,7 @@
 ;;; Font Lock
 (defconst kotlin-statement-getter-setter-keywords
   '("set" "get"))
-  
+
 (defconst kotlin-mode--misc-keywords
   '("package" "import"))
 
@@ -286,7 +286,7 @@ between function chaining or in function calls or declarations."
   (search-backward "{" nil 1 1)
   (down-list)
   (forward-line)
-)  
+  )  
 
 (defun kotlin-is-getter-setter ()
   (save-excursion
@@ -305,7 +305,7 @@ between function chaining or in function calls or declarations."
     (back-to-indentation)
     (looking-at kotlin-fun-class-decl-re)
     ))
-        
+
 (defun kotlin-is-method-chaining ()
   "Return true if the current line is a method chaining"
   (save-excursion
@@ -339,21 +339,21 @@ point at the last method chainer.
       (if (not (looking-at "\\."))
           nil
         (point)))
-      ))
+    ))
 
 (defun kotlin-mode--indent-line ()
   "Indent current line as kotlin code"
   (interactive)
+  (back-to-indentation)
   (save-excursion
-      (back-to-indentation)
-      (cond ((looking-at "}\\|)") ;; line starts by a closing char, time to
-                                  ;; indent back
-             (setq cur-indent (* kotlin-tab-width (- (kotlin-paren-level) 1))))
+    (cond ((looking-at "}\\|)") ;; line starts by a closing char, time to
+           ;; indent back
+           (setq cur-indent (* kotlin-tab-width (- (kotlin-paren-level) 1))))
 
-            ((looking-at "\\.") ;; We are in a function chaining case so we are
-                                ;; trying to go to the beginning of the
-             ;; statement
-             (let ((line-to-indent-level (kotlin-paren-level)))
+          ((looking-at "\\.") ;; We are in a function chaining case so we are
+           ;; trying to go to the beginning of the
+           ;; statement
+           (let ((line-to-indent-level (kotlin-paren-level)))
              (save-excursion
                (rewind-to-beginning-of-expr)
                (let ((chainer-position (kotlin-find-last-chain-member-on-line)))
@@ -364,52 +364,54 @@ point at the last method chainer.
                    (setq cur-indent (* kotlin-tab-width (+ 1 line-to-indent-level))))))
              ))
 
-            ((looking-at "[gs]et(")
+          ((looking-at "[gs]et(")
+           (save-excursion
+             (rewind-to-beginning-of-expr)
+             (if (looking-at "[ \t]*va[lr]")
+                 (setq cur-indent (* kotlin-tab-width
+                                     (+
+                                      (kotlin-paren-level) 1)))
+               (setq cur-indent (* kotlin-tab-width (kotlin-paren-level))))))
+          
+
+          ;; for all the cases that requires that we analyse the previous line
+          ;; instead of the current line. This should help us to get some more
+          ;; context and help to make a decision.
+          (t
+           (let ((line-to-indent-level (kotlin-paren-level)))
              (save-excursion
-               (rewind-to-beginning-of-expr)
-               (if (looking-at "[ \t]*va[lr]")
-                   (setq cur-indent (* kotlin-tab-width
-                                       (+
-                                        (kotlin-paren-level) 1)))
-                 (setq cur-indent (* kotlin-tab-width (kotlin-paren-level))))))
-                         
+               (kotlin-prev-line)
+               (back-to-indentation)
+               (cond (;; Ending with a coma, this must be line warp for a defun of
+                      ;; or a funcall so we apply twice the indent as stated in
+                      ;; java coding style from Oracle. 
+                      (looking-at ".*,[ \t]*$")
+                      ;; we also need to look if the line above is on the same
+                      ;; parens level in order to detect an inner function
+                      ;; call. In that case, we reuse the extra indentation to
+                      ;; the new indenting. 
+                      (setq cur-indent (+ (* kotlin-tab-width
+                                             (+ line-to-indent-level
+                                                1))
+                                          (if (< (kotlin-paren-level)
+                                                 line-to-indent-level)
+                                              (- (current-indentation)
+                                                 (* (kotlin-paren-level)
+                                                    kotlin-tab-width))
+                                            0))))
 
-            ;; for all the cases that requires that we analyse the previous line
-            ;; instead of the current line. This should help us to get some more
-            ;; context and help to make a decision.
-            (t
-             (let ((line-to-indent-level (kotlin-paren-level)))
-               (save-excursion
-                 (kotlin-prev-line)
-                 (back-to-indentation)
-                 (cond (;; Ending with a coma, this must be line warp for a defun of
-                        ;; or a funcall so we apply twice the indent as stated in
-                        ;; java coding style from Oracle. 
-                        (looking-at ".*,[ \t]*$")
-                        ;; we also need to look if the line above is on the same
-                        ;; parens level in order to detect an inner function
-                        ;; call. In that case, we reuse the extra indentation to
-                        ;; the new indenting. 
-                        (setq cur-indent (+ (* kotlin-tab-width
-                                               (+ line-to-indent-level
-                                                  1))
-                                            (if (< (kotlin-paren-level)
-                                                   line-to-indent-level)
-                                                (- (current-indentation)
-                                                   (* (kotlin-paren-level)
-                                                      kotlin-tab-width))
-                                              0))))
-
-                       ;; Any other case is getting a normal indentation
-                       ;; according to how deep we are nested
-                       (t
-                        (setq cur-indent (* kotlin-tab-width
-                                            line-to-indent-level)))
-                       )))))
-      
-      (if cur-indent
-          (indent-line-to cur-indent)
-        (indent-line-to 0))))
+                     ;; Any other case is getting a normal indentation
+                     ;; according to how deep we are nested
+                     ((kotlin-is-getter-setter) (+ line-to-indent-level
+                                                   1))
+                     (t
+                      (setq cur-indent (* kotlin-tab-width
+                                          line-to-indent-level)))
+                     ))))))
+    
+    (if cur-indent
+        (indent-line-to cur-indent)
+      (indent-line-to 0)))
 
 ;;;###autoload
 (define-derived-mode kotlin-mode prog-mode "Kotlin"
