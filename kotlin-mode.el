@@ -362,11 +362,6 @@ point at the last method chainer.
     ))
 
 
-(defun kotlin-inner-getter-setter ()
-  
-  )
-
-
 (defun kotlin-mode--indent-line ()
   "Indent current line as kotlin code"
   (interactive)
@@ -398,7 +393,7 @@ point at the last method chainer.
                             )
                    (setq cur-indent (* kotlin-tab-width (+ 1 line-to-indent-level))))))
              ))
-          
+
           ((looking-at "[gs]et(")
            (save-excursion
              (rewind-to-beginning-of-expr)
@@ -438,17 +433,13 @@ point at the last method chainer.
 
                      ;; NOTE: I think that here, we should look if we have a set/get and act on it. The trick is to figure out if the get/set is a getter/setter on a var/val. Not that easy.
                      ((looking-at "[ \t]*[gs]et(")
-                      (message "what?")
                       (save-excursion
                         (rewind-to-beginning-of-expr)
                         (if (looking-at "[ \t]*va[lr]")
-                            (progn
-                              (message "yes")
                               (setq cur-indent (* kotlin-tab-width
                                                   (+ 1 line-to-indent-level)))
-                              )))
+                              ))
                         
-                      (message "toto")
                       )
 
                      
@@ -458,7 +449,6 @@ point at the last method chainer.
                       (setq cur-indent (* kotlin-tab-width
                                           line-to-indent-level)))
                      ))))))
-  
   
   (if cur-indent
       (indent-line-to cur-indent)
