@@ -27,6 +27,9 @@
 
 (require 'rx)
 
+(defvar default-tab-width)
+(defvar cur-indent)
+
 (defgroup kotlin nil
   "A Kotlin major mode."
   :group 'languages)
