@@ -1,6 +1,6 @@
 ;;; kotlin-mode.el --- ERT Tests for kotlin-mode.el
 
-(setq default-tab-width 4)
+(setq tab-width 4)
 (require 'kotlin-mode)
 (setq-default indent-tabs-mode nil)
 
