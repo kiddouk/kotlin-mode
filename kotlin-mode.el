@@ -244,7 +244,7 @@ between function chaining or in function calls or declarations."
   (if (not (bobp))
       (progn
         (forward-line -1)
-        (while (and (or (looking-at "^[ \t]*$") (looking-at "^[ \t]//.*$")) (not (bobp)))
+        (while (and (or (looking-at comment-start-skip) (looking-at "^[ \t]*$") (looking-at "^[ \t]//.*$")) (not (bobp)))
           (forward-line -1)))))
 
 (defun rewind-to-beginning-of-expr ()

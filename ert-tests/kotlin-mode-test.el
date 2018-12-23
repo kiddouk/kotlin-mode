@@ -238,3 +238,13 @@ class T {
             field = v
         }
 }"))
+
+
+(ert-deftest kotlin-mode--comment-in-function-chaining()
+  (test-indent
+   "
+obj.apply()
+   .apply()
+// a comment
+   .apply()
+"))
