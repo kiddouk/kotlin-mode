@@ -1,5 +1,7 @@
 # Emacs Kotlin Mode
 
+[![Build Status](https://secure.travis-ci.org/kiddouk/kotlin-mode.png?branch=master,staging,production)](http://travis-ci.org/kiddouk/kotlin-mode)
+
 This mode is a fork of the original Kotlin-Mode that is published in [in this repo](https://github.com/Emacs-Kotlin-Mode-Maintainers/kotlin-mode).
 
 As the time of writing, the official repo has stalled for the development and I had an urge for trying my developper skills at Lisp. This is work in progress.
