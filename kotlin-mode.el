@@ -46,6 +46,8 @@
     map)
   "Keymap for kotlin-mode")
 
+(defconst kotlin-mode--comment-start-skip "[ \t]*\\(//+\\|/\\*+\\|\\*/?\\)\\s *")
+
 (defvar kotlin-mode-syntax-table
   (let ((st (make-syntax-table)))
 
@@ -213,11 +215,23 @@
     (remove-text-properties start end '(kotlin-property--interpolation))
     (funcall
      (syntax-propertize-rules
-      ((let ((identifier '(any alnum " !%&()*+-./:<>?[]^_|~")))
+      (
+       (let (
+             (identifier '(any alnum " !%&()*+-./:<>?[]^_|~")
+                         )
+             )
          (rx-to-string
           `(or (group "${" (* ,identifier) "}")
-               (group "$" (+ ,identifier)))))
-       (0 (ignore (kotlin-mode--syntax-propertize-interpolation)))))
+               (group "$" (+ ,identifier)
+                      )
+               )
+          )
+         )
+       (0 (ignore (kotlin-mode--syntax-propertize-interpolation)
+                  )
+          )
+       )
+      )
      start end)))
 
 (defun kotlin-mode--match-interpolation (limit)
@@ -244,13 +258,13 @@ between function chaining or in function calls or declarations."
   (if (not (bobp))
       (progn
         (forward-line -1)
-        (while (and (or (looking-at comment-start-skip) (looking-at "^[ \t]*$") (looking-at "^[ \t]//.*$")) (not (bobp)))
+        (while (and (or (looking-at kotlin-mode--comment-start-skip) (looking-at "^[ \t]*$") (looking-at "^[ \t]//.*$")) (not (bobp)))
           (forward-line -1)))))
 
 (defun rewind-to-beginning-of-expr ()
-  "this defun is trying to find the start of the expression backward. At the
+  "This defun is trying to find the start of the expression backward. At the
   end, the point should be on the first character of the expression. 
-
+    
   This function is mainly used in function chaining to point at the right level
   of indentation."
   (let ((current-level (kotlin-paren-level))
@@ -268,7 +282,9 @@ between function chaining or in function calls or declarations."
             (setq getter-seen t)
           )
         (kotlin-prev-line)
-        (back-to-indentation)))
+        (back-to-indentation)
+        )
+      )
 
     ;; the previous while loop may put us one line above the desired start of
     ;; expression if we didn't match a declaration. We fix that here

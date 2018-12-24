@@ -248,3 +248,26 @@ obj.apply()
 // a comment
    .apply()
 "))
+
+(ert-deftest kotlin-mode--comment-in-function-chaining-with-dot()
+  (test-indent
+   "
+obj.apply()
+   .apply()
+// a comment. with a dot
+   .apply()
+"))
+
+(ert-deftest kotlin-mode--comment-in-function-chaining-with-extended-comment()
+  (test-indent
+   "
+obj.apply()
+   .apply()
+/* a comment. with a dot
+* and a long comment
+*/ 
+   .apply()
+"))
+
+
+
